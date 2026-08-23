@@ -1,196 +1,242 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const fileInput = document.getElementById('fileInput');
-  const fileNameDisplay = document.getElementById('fileNameDisplay');
-  const uploadBtn = document.getElementById('uploadBtn');
-  const statusIndicator = document.getElementById('statusIndicator');
-  const statusText = document.getElementById('statusText');
-  const contextPanel = document.getElementById('contextPanel');
-  const metaFilename = document.getElementById('metaFilename');
-  const metaChunks = document.getElementById('metaChunks');
-  const metaTime = document.getElementById('metaTime');
-  const activeDocTag = document.getElementById('activeDocTag');
-  const chatContainer = document.getElementById('chatContainer');
-  const emptyState = document.getElementById('emptyState');
-  const queryForm = document.getElementById('queryForm');
-  const queryInput = document.getElementById('queryInput');
-  const queryBtn = document.getElementById('queryBtn');
+let authToken = localStorage.getItem('documind_token') || null;
 
-  // Theme Toggle Elements
-  const themeToggleBtn = document.getElementById('themeToggleBtn');
-  const themeIcon = document.getElementById('themeIcon');
-  const themeLabel = document.getElementById('themeLabel');
+// DOM Elements
+const authModal = document.getElementById('auth-modal');
+const authTitle = document.getElementById('auth-title');
+const authSubmit = document.getElementById('auth-submit');
+const authToggleText = document.getElementById('auth-toggle-text');
+const authToggleBtn = document.getElementById('auth-toggle-btn');
+const authEmail = document.getElementById('auth-email');
+const authPassword = document.getElementById('auth-password');
+const userDisplay = document.getElementById('user-display');
+const userEmailSpan = document.getElementById('user-email');
+const logoutBtn = document.getElementById('logout-btn');
 
-  // Load Saved Theme
-  const savedTheme = localStorage.getItem('documind_theme') || 'dark';
-  if (savedTheme === 'light') {
-    document.body.classList.add('light-theme');
-    if (themeIcon) themeIcon.textContent = '🌙';
-    if (themeLabel) themeLabel.textContent = 'Dark Mode';
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+const docName = document.getElementById('doc-name');
+const indexStatus = document.getElementById('index-status');
+const clearDocBtn = document.getElementById('clear-doc-btn');
+
+const chatForm = document.getElementById('chat-form');
+const chatInput = document.getElementById('chat-input');
+const chatWindow = document.getElementById('chat-window');
+const emptyState = document.getElementById('empty-state');
+const themeToggle = document.getElementById('theme-toggle');
+
+let isRegisterMode = false;
+
+// Theme Logic
+themeToggle.addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme');
+  const target = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', target);
+  themeToggle.textContent = target === 'dark' ? '🌙' : '☀️';
+  localStorage.setItem('documind_theme', target);
+});
+
+const savedTheme = localStorage.getItem('documind_theme') || 'dark';
+document.documentElement.setAttribute('data-theme', savedTheme);
+themeToggle.textContent = savedTheme === 'dark' ? '🌙' : '☀️';
+
+// Auth Mode Toggle
+authToggleBtn.addEventListener('click', () => {
+  isRegisterMode = !isRegisterMode;
+  authTitle.textContent = isRegisterMode ? 'Create Account' : 'Welcome Back';
+  authSubmit.textContent = isRegisterMode ? 'Sign Up' : 'Sign In';
+  authToggleText.textContent = isRegisterMode ? 'Already have an account?' : "Don't have an account?";
+  authToggleBtn.textContent = isRegisterMode ? 'Sign In' : 'Register';
+});
+
+// Submit Login / Register
+authSubmit.addEventListener('click', async (e) => {
+  e.preventDefault();
+  const email = authEmail.value.trim();
+  const password = authPassword.value.trim();
+
+  if (!email || !password) {
+    alert('Please provide both email and password.');
+    return;
   }
 
-  // Handle Theme Toggle
-  if (themeToggleBtn) {
-    themeToggleBtn.addEventListener('click', () => {
-      const isLight = document.body.classList.toggle('light-theme');
-      if (isLight) {
-        themeIcon.textContent = '🌙';
-        themeLabel.textContent = 'Dark Mode';
-        localStorage.setItem('documind_theme', 'light');
-      } else {
-        themeIcon.textContent = '☀️';
-        themeLabel.textContent = 'Light Mode';
-        localStorage.setItem('documind_theme', 'dark');
-      }
+  const endpoint = isRegisterMode ? '/api/auth/register' : '/api/auth/login';
+
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
     });
-  }
 
-  let selectedFile = null;
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Authentication failed');
 
-  if (fileInput) {
-    fileInput.addEventListener('change', (e) => {
-      if (e.target.files.length > 0) {
-        selectedFile = e.target.files[0];
-        if (fileNameDisplay) fileNameDisplay.textContent = selectedFile.name;
-        if (uploadBtn) {
-          uploadBtn.disabled = false;
-          uploadBtn.classList.remove('btn-secondary');
-          uploadBtn.classList.add('btn-primary');
-        }
-      }
-    });
-  }
-
-  if (uploadBtn) {
-    uploadBtn.addEventListener('click', async () => {
-      if (!selectedFile) return;
-
-      uploadBtn.disabled = true;
-      uploadBtn.textContent = 'Indexing...';
-
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-
-      try {
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.error || 'Indexing failed');
-        }
-
-        // 1. Clear previous conversation and history
-        if (chatContainer) {
-          chatContainer.innerHTML = '';
-        }
-
-        // 2. Update status & metadata
-        if (statusIndicator) statusIndicator.classList.add('active');
-        if (statusText) statusText.textContent = 'Index Active';
-
-        if (contextPanel) contextPanel.style.display = 'block';
-        if (metaFilename) metaFilename.textContent = data.document.filename;
-        if (metaChunks) metaChunks.textContent = data.document.totalChunks;
-        if (metaTime) metaTime.textContent = new Date(data.document.uploadedAt).toLocaleTimeString();
-
-        if (activeDocTag) activeDocTag.textContent = data.document.filename;
-
-        // 3. Add a fresh indexed notification banner in console
-        const readyNotice = document.createElement('div');
-        readyNotice.className = 'empty-state';
-        readyNotice.style.margin = '20px auto';
-        readyNotice.innerHTML = `<span style="color: var(--accent-color); font-weight: 600;">✓ ${data.document.filename}</span> indexed successfully (${data.document.totalChunks} chunks). Ask any question below.`;
-        chatContainer.appendChild(readyNotice);
-
-        // 4. Ready query input
-        if (queryInput) {
-          queryInput.disabled = false;
-          queryInput.value = '';
-          queryInput.focus();
-        }
-        if (queryBtn) queryBtn.disabled = false;
-
-      } catch (err) {
-        alert(`Upload error: ${err.message}`);
-      } finally {
-        uploadBtn.disabled = false;
-        uploadBtn.textContent = 'Index Document';
-      }
-    });
-  }
-
-  if (queryForm) {
-    queryForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const question = queryInput.value.trim();
-      if (!question) return;
-
-      // Remove the initial ready notice if it exists
-      const initialNotice = chatContainer.querySelector('.empty-state');
-      if (initialNotice) {
-        initialNotice.remove();
-      }
-
-      queryInput.value = '';
-      queryInput.disabled = true;
-      queryBtn.disabled = true;
-
-      const entry = document.createElement('div');
-      entry.className = 'query-entry';
-
-      const qEl = document.createElement('div');
-      qEl.className = 'query-display';
-      qEl.innerHTML = `<strong>Q: ${question}</strong>`;
-
-      const aEl = document.createElement('div');
-      aEl.className = 'response-display';
-      aEl.innerHTML = '<em>Analyzing document...</em>';
-
-      entry.appendChild(qEl);
-      entry.appendChild(aEl);
-      chatContainer.appendChild(entry);
-      chatContainer.scrollTop = chatContainer.scrollHeight;
-
-      try {
-        const res = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ question }),
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.error || 'Failed to get answer');
-        }
-
-        aEl.innerHTML = typeof marked !== 'undefined' ? marked.parse(data.answer) : data.answer;
-
-        if (data.sources && data.sources.length > 0) {
-          const sourcesContainer = document.createElement('div');
-          sourcesContainer.className = 'grounding-box';
-          sourcesContainer.innerHTML = '<div class="grounding-title">GROUNDING SOURCES:</div>';
-
-          data.sources.forEach((source, index) => {
-            const item = document.createElement('div');
-            item.className = 'source-node';
-            item.textContent = `#${index + 1} (Score: ${Number(source.score).toFixed(3)}): "${source.text.substring(0, 180)}..."`;
-            sourcesContainer.appendChild(item);
-          });
-
-          entry.appendChild(sourcesContainer);
-        }
-      } catch (err) {
-        aEl.innerHTML = `<span style="color: #ef4444;">Error: ${err.message}</span>`;
-      } finally {
-        queryInput.disabled = false;
-        queryBtn.disabled = false;
-        queryInput.focus();
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-      }
-    });
+    authToken = data.token;
+    localStorage.setItem('documind_token', authToken);
+    userEmailSpan.textContent = data.email;
+    authModal.style.display = 'none';
+    userDisplay.style.display = 'flex';
+  } catch (err) {
+    alert(err.message);
   }
 });
+
+// Logout
+logoutBtn.addEventListener('click', () => {
+  authToken = null;
+  localStorage.removeItem('documind_token');
+  userDisplay.style.display = 'none';
+  authModal.style.display = 'flex';
+});
+
+// Check Session on Load
+async function checkAuth() {
+  if (!authToken) {
+    authModal.style.display = 'flex';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/auth/me', {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      userEmailSpan.textContent = data.email;
+      authModal.style.display = 'none';
+      userDisplay.style.display = 'flex';
+      if (data.document) {
+        docName.textContent = data.document.filename;
+        indexStatus.textContent = `Indexed (${data.document.totalChunks} chunks)`;
+        clearDocBtn.style.display = 'inline-block';
+      }
+    } else {
+      authToken = null;
+      localStorage.removeItem('documind_token');
+      authModal.style.display = 'flex';
+    }
+  } catch {
+    authModal.style.display = 'flex';
+  }
+}
+
+// File Upload Handler
+dropZone.addEventListener('click', () => {
+  if (!authToken) {
+    authModal.style.display = 'flex';
+    return;
+  }
+  fileInput.click();
+});
+
+fileInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  if (!authToken) {
+    authModal.style.display = 'flex';
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  indexStatus.textContent = 'Indexing...';
+  docName.textContent = file.name;
+
+  try {
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${authToken}` },
+      body: formData
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+
+    indexStatus.textContent = `Indexed (${data.document.totalChunks} chunks)`;
+    clearDocBtn.style.display = 'inline-block';
+  } catch (err) {
+    indexStatus.textContent = 'Upload failed';
+    alert(`Upload error: ${err.message}`);
+  }
+});
+
+// Chat Submit Handler
+chatForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const question = chatInput.value.trim();
+  if (!question) return;
+
+  if (!authToken) {
+    authModal.style.display = 'flex';
+    return;
+  }
+
+  emptyState.style.display = 'none';
+  appendMessage('user', question);
+  chatInput.value = '';
+
+  const loadingId = appendLoading();
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({ question })
+    });
+
+    const data = await res.json();
+    removeLoading(loadingId);
+
+    if (!res.ok) throw new Error(data.error || 'Query failed');
+
+    appendMessage('assistant', data.answer, data.sources);
+  } catch (err) {
+    removeLoading(loadingId);
+    appendMessage('assistant', `⚠️ Error: ${err.message}`);
+  }
+});
+
+function appendMessage(sender, text, sources = []) {
+  const msgDiv = document.createElement('div');
+  msgDiv.className = `message ${sender}-message`;
+
+  let sourceHtml = '';
+  if (sources && sources.length > 0) {
+    sourceHtml = `
+      <div class="sources-box">
+        <strong>Sources cited:</strong>
+        <ul>
+          ${sources.map(s => `<li>Score: ${s.score.toFixed(2)} - "${s.text.substring(0, 100)}..."</li>`).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
+  msgDiv.innerHTML = `<div class="msg-content">${text.replace(/\n/g, '<br>')}</div>${sourceHtml}`;
+  chatWindow.appendChild(msgDiv);
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+function appendLoading() {
+  const id = 'loading-' + Date.now();
+  const msgDiv = document.createElement('div');
+  msgDiv.id = id;
+  msgDiv.className = 'message assistant-message loading-indicator';
+  msgDiv.textContent = 'DocuMind is thinking...';
+  chatWindow.appendChild(msgDiv);
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+  return id;
+}
+
+function removeLoading(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+checkAuth();
