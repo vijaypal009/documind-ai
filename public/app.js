@@ -1,17 +1,3 @@
-let authToken = localStorage.getItem('documind_token') || null;
-
-// Auth Elements
-const authModal = document.getElementById('auth-modal');
-const authTitle = document.getElementById('auth-title');
-const authSubmit = document.getElementById('auth-submit');
-const authToggleText = document.getElementById('auth-toggle-text');
-const authToggleBtn = document.getElementById('auth-toggle-btn');
-const authEmail = document.getElementById('auth-email');
-const authPassword = document.getElementById('auth-password');
-const userDisplay = document.getElementById('user-display');
-const userEmailSpan = document.getElementById('user-email');
-const logoutBtn = document.getElementById('logout-btn');
-
 // Document Elements
 const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('file-input');
@@ -24,8 +10,6 @@ const chatInput = document.getElementById('chat-input');
 const chatWindow = document.getElementById('chat-window');
 const emptyState = document.getElementById('empty-state');
 const themeToggle = document.getElementById('theme-toggle');
-
-let isRegisterMode = false;
 
 // Theme Controller
 themeToggle.addEventListener('click', () => {
@@ -40,97 +24,12 @@ const savedTheme = localStorage.getItem('documind_theme') || 'dark';
 document.documentElement.setAttribute('data-theme', savedTheme);
 themeToggle.textContent = savedTheme === 'dark' ? '🌙' : '☀️';
 
-// Auth Mode Switch
-authToggleBtn.addEventListener('click', () => {
-  isRegisterMode = !isRegisterMode;
-  authTitle.textContent = isRegisterMode ? 'Create Account' : 'Welcome Back';
-  authSubmit.textContent = isRegisterMode ? 'Sign Up' : 'Sign In';
-  authToggleText.textContent = isRegisterMode ? 'Already have an account?' : "Don't have an account?";
-  authToggleBtn.textContent = isRegisterMode ? 'Sign In' : 'Register';
-});
-
-// Submit Login / Register
-authSubmit.addEventListener('click', async (e) => {
-  e.preventDefault();
-  const email = authEmail.value.trim();
-  const password = authPassword.value.trim();
-
-  if (!email || !password) {
-    alert('Please enter both email and password.');
-    return;
-  }
-
-  const endpoint = isRegisterMode ? '/api/auth/register' : '/api/auth/login';
-
-  try {
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Authentication failed');
-
-    authToken = data.token;
-    localStorage.setItem('documind_token', authToken);
-    userEmailSpan.textContent = data.email;
-    authModal.style.display = 'none';
-    userDisplay.style.display = 'flex';
-  } catch (err) {
-    alert(err.message);
-  }
-});
-
-// Logout
-logoutBtn.addEventListener('click', () => {
-  authToken = null;
-  localStorage.removeItem('documind_token');
-  userDisplay.style.display = 'none';
-  authModal.style.display = 'flex';
-});
-
-// Check Session on Start
-async function checkAuth() {
-  if (!authToken) {
-    authModal.style.display = 'flex';
-    return;
-  }
-
-  try {
-    const res = await fetch('/api/auth/me', {
-      headers: { 'Authorization': `Bearer ${authToken}` }
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      userEmailSpan.textContent = data.email;
-      authModal.style.display = 'none';
-      userDisplay.style.display = 'flex';
-      if (data.document) {
-        docName.textContent = data.document.filename;
-        indexStatus.textContent = `Indexed (${data.document.totalChunks} chunks)`;
-      }
-    } else {
-      authToken = null;
-      localStorage.removeItem('documind_token');
-      authModal.style.display = 'flex';
-    }
-  } catch {
-    authModal.style.display = 'flex';
-  }
-}
-
 // File Upload Trigger
 dropZone.addEventListener('click', () => {
-  if (!authToken) {
-    authModal.style.display = 'flex';
-    return;
-  }
   fileInput.click();
 });
 
-// Drag and drop support
+// Drag and drop handlers
 dropZone.addEventListener('dragover', (e) => {
   e.preventDefault();
   dropZone.style.borderColor = 'var(--accent)';
@@ -144,7 +43,6 @@ dropZone.addEventListener('drop', (e) => {
   e.preventDefault();
   dropZone.style.borderColor = '';
   if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-    fileInput.files = e.dataTransfer.files;
     uploadFile(e.dataTransfer.files[0]);
   }
 });
@@ -156,11 +54,6 @@ fileInput.addEventListener('change', (e) => {
 });
 
 async function uploadFile(file) {
-  if (!authToken) {
-    authModal.style.display = 'flex';
-    return;
-  }
-
   const formData = new FormData();
   formData.append('file', file);
 
@@ -170,7 +63,6 @@ async function uploadFile(file) {
   try {
     const res = await fetch('/api/upload', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${authToken}` },
       body: formData
     });
 
@@ -190,11 +82,6 @@ chatForm.addEventListener('submit', async (e) => {
   const question = chatInput.value.trim();
   if (!question) return;
 
-  if (!authToken) {
-    authModal.style.display = 'flex';
-    return;
-  }
-
   emptyState.style.display = 'none';
   appendMessage('user', question);
   chatInput.value = '';
@@ -204,10 +91,7 @@ chatForm.addEventListener('submit', async (e) => {
   try {
     const res = await fetch('/api/chat', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ question })
     });
 
@@ -233,7 +117,7 @@ function appendMessage(sender, text, sources = []) {
       <div class="sources-box">
         <strong>Sources cited:</strong>
         <ul>
-          ${sources.map(s => `<li>Similarity: ${(s.score * 100).toFixed(0)}% — "${s.text.substring(0, 90)}..."</li>`).join('')}
+          ${sources.map(s => `<li>Score: ${s.score.toFixed(2)} — "${s.text.substring(0, 90)}..."</li>`).join('')}
         </ul>
       </div>
     `;
@@ -259,5 +143,3 @@ function removeLoading(id) {
   const el = document.getElementById(id);
   if (el) el.remove();
 }
-
-checkAuth();
