@@ -1,6 +1,6 @@
 let authToken = localStorage.getItem('documind_token') || null;
 
-// DOM Elements
+// Auth Elements
 const authModal = document.getElementById('auth-modal');
 const authTitle = document.getElementById('auth-title');
 const authSubmit = document.getElementById('auth-submit');
@@ -12,12 +12,13 @@ const userDisplay = document.getElementById('user-display');
 const userEmailSpan = document.getElementById('user-email');
 const logoutBtn = document.getElementById('logout-btn');
 
+// Document Elements
 const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('file-input');
 const docName = document.getElementById('doc-name');
 const indexStatus = document.getElementById('index-status');
-const clearDocBtn = document.getElementById('clear-doc-btn');
 
+// Chat Elements
 const chatForm = document.getElementById('chat-form');
 const chatInput = document.getElementById('chat-input');
 const chatWindow = document.getElementById('chat-window');
@@ -26,7 +27,7 @@ const themeToggle = document.getElementById('theme-toggle');
 
 let isRegisterMode = false;
 
-// Theme Logic
+// Theme Controller
 themeToggle.addEventListener('click', () => {
   const current = document.documentElement.getAttribute('data-theme');
   const target = current === 'dark' ? 'light' : 'dark';
@@ -39,7 +40,7 @@ const savedTheme = localStorage.getItem('documind_theme') || 'dark';
 document.documentElement.setAttribute('data-theme', savedTheme);
 themeToggle.textContent = savedTheme === 'dark' ? '🌙' : '☀️';
 
-// Auth Mode Toggle
+// Auth Mode Switch
 authToggleBtn.addEventListener('click', () => {
   isRegisterMode = !isRegisterMode;
   authTitle.textContent = isRegisterMode ? 'Create Account' : 'Welcome Back';
@@ -55,7 +56,7 @@ authSubmit.addEventListener('click', async (e) => {
   const password = authPassword.value.trim();
 
   if (!email || !password) {
-    alert('Please provide both email and password.');
+    alert('Please enter both email and password.');
     return;
   }
 
@@ -89,7 +90,7 @@ logoutBtn.addEventListener('click', () => {
   authModal.style.display = 'flex';
 });
 
-// Check Session on Load
+// Check Session on Start
 async function checkAuth() {
   if (!authToken) {
     authModal.style.display = 'flex';
@@ -109,7 +110,6 @@ async function checkAuth() {
       if (data.document) {
         docName.textContent = data.document.filename;
         indexStatus.textContent = `Indexed (${data.document.totalChunks} chunks)`;
-        clearDocBtn.style.display = 'inline-block';
       }
     } else {
       authToken = null;
@@ -121,7 +121,7 @@ async function checkAuth() {
   }
 }
 
-// File Upload Handler
+// File Upload Trigger
 dropZone.addEventListener('click', () => {
   if (!authToken) {
     authModal.style.display = 'flex';
@@ -130,10 +130,32 @@ dropZone.addEventListener('click', () => {
   fileInput.click();
 });
 
-fileInput.addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+// Drag and drop support
+dropZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  dropZone.style.borderColor = 'var(--accent)';
+});
 
+dropZone.addEventListener('dragleave', () => {
+  dropZone.style.borderColor = '';
+});
+
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.style.borderColor = '';
+  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+    fileInput.files = e.dataTransfer.files;
+    uploadFile(e.dataTransfer.files[0]);
+  }
+});
+
+fileInput.addEventListener('change', (e) => {
+  if (e.target.files && e.target.files[0]) {
+    uploadFile(e.target.files[0]);
+  }
+});
+
+async function uploadFile(file) {
   if (!authToken) {
     authModal.style.display = 'flex';
     return;
@@ -142,8 +164,8 @@ fileInput.addEventListener('change', async (e) => {
   const formData = new FormData();
   formData.append('file', file);
 
-  indexStatus.textContent = 'Indexing...';
   docName.textContent = file.name;
+  indexStatus.textContent = 'Indexing document...';
 
   try {
     const res = await fetch('/api/upload', {
@@ -156,14 +178,13 @@ fileInput.addEventListener('change', async (e) => {
     if (!res.ok) throw new Error(data.error || 'Upload failed');
 
     indexStatus.textContent = `Indexed (${data.document.totalChunks} chunks)`;
-    clearDocBtn.style.display = 'inline-block';
   } catch (err) {
     indexStatus.textContent = 'Upload failed';
     alert(`Upload error: ${err.message}`);
   }
-});
+}
 
-// Chat Submit Handler
+// Chat Query Handler
 chatForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const question = chatInput.value.trim();
@@ -212,7 +233,7 @@ function appendMessage(sender, text, sources = []) {
       <div class="sources-box">
         <strong>Sources cited:</strong>
         <ul>
-          ${sources.map(s => `<li>Score: ${s.score.toFixed(2)} - "${s.text.substring(0, 100)}..."</li>`).join('')}
+          ${sources.map(s => `<li>Similarity: ${(s.score * 100).toFixed(0)}% — "${s.text.substring(0, 90)}..."</li>`).join('')}
         </ul>
       </div>
     `;
@@ -228,7 +249,7 @@ function appendLoading() {
   const msgDiv = document.createElement('div');
   msgDiv.id = id;
   msgDiv.className = 'message assistant-message loading-indicator';
-  msgDiv.textContent = 'DocuMind is thinking...';
+  msgDiv.textContent = 'DocuMind is analyzing...';
   chatWindow.appendChild(msgDiv);
   chatWindow.scrollTop = chatWindow.scrollHeight;
   return id;
