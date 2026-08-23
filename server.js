@@ -17,11 +17,13 @@ const JWT_SECRET = process.env.JWT_SECRET || 'documind_secure_jwt_secret_key_202
 
 app.use(cors());
 app.use(express.json());
+
+// Serve static frontend files from the public folder
 app.use(express.static(path.join(__dirname, 'public')));
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 const chatModel = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
 
 const userStores = new Map();
@@ -79,7 +81,7 @@ app.post('/api/auth/register', async (req, res) => {
       [email.toLowerCase(), hashedPassword],
       function (err) {
         if (err) {
-          if (err.message.includes('UNIQUE')) {
+          if (err.message && err.message.includes('UNIQUE')) {
             return res.status(400).json({ error: 'Email already registered.' });
           }
           return res.status(500).json({ error: 'Database registration error.' });
@@ -180,7 +182,6 @@ app.post('/api/chat', authenticateToken, async (req, res) => {
     const prompt = `
 You are DocuMind AI, an expert analytical document assistant.
 Analyze the provided document excerpts to answer the user's request thoroughly and accurately.
-You are permitted to evaluate, rate, critique, summarize, or extract details based on the contents provided.
 If the request is completely unrelated to anything in the document context, state: "I cannot find this information in the uploaded document."
 
 Context Excerpts:
@@ -204,8 +205,8 @@ Response:
   }
 });
 
-// Explicit Route for root and SPA fallback
-app.get('*', (req, res) => {
+// Express v5 compatible SPA fallback handler
+app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
