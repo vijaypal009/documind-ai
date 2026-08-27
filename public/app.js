@@ -43,6 +43,7 @@ dropZone.addEventListener('drop', (e) => {
   e.preventDefault();
   dropZone.style.borderColor = '';
   if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+    fileInput.files = e.dataTransfer.files;
     uploadFile(e.dataTransfer.files[0]);
   }
 });
@@ -111,19 +112,26 @@ function appendMessage(sender, text, sources = []) {
   const msgDiv = document.createElement('div');
   msgDiv.className = `message ${sender}-message`;
 
+  let parsedContent = text;
+  if (sender === 'assistant' && typeof marked !== 'undefined') {
+    parsedContent = marked.parse(text);
+  } else {
+    parsedContent = `<p>${text.replace(/\n/g, '<br>')}</p>`;
+  }
+
   let sourceHtml = '';
   if (sources && sources.length > 0) {
     sourceHtml = `
       <div class="sources-box">
-        <strong>Sources cited:</strong>
+        <div class="sources-title">Relevant Sources</div>
         <ul>
-          ${sources.map(s => `<li>Score: ${s.score.toFixed(2)} — "${s.text.substring(0, 90)}..."</li>`).join('')}
+          ${sources.map(s => `<li>Score: ${s.score.toFixed(2)} — <em>"${s.text.substring(0, 90).replace(/\n/g, ' ')}..."</em></li>`).join('')}
         </ul>
       </div>
     `;
   }
 
-  msgDiv.innerHTML = `<div class="msg-content">${text.replace(/\n/g, '<br>')}</div>${sourceHtml}`;
+  msgDiv.innerHTML = `<div class="msg-content markdown-body">${parsedContent}</div>${sourceHtml}`;
   chatWindow.appendChild(msgDiv);
   chatWindow.scrollTop = chatWindow.scrollHeight;
 }

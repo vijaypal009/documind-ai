@@ -18,9 +18,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 const upload = multer({ storage: multer.memoryStorage() });
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-const chatModel = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
+const chatModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-// Global in-memory vector store & state
 const globalStore = new VectorStore();
 let currentDocument = null;
 
@@ -91,6 +90,7 @@ app.post('/api/chat', async (req, res) => {
     const prompt = `
 You are DocuMind AI, an expert analytical document assistant.
 Analyze the provided document excerpts to answer the user's request thoroughly and accurately.
+Format your output cleanly using markdown headings, bullet points, and bold text.
 If the request is completely unrelated to anything in the document context, state: "I cannot find this information in the uploaded document."
 
 Context Excerpts:
@@ -114,7 +114,7 @@ Response:
   }
 });
 
-// Fallback to SPA
+// Express v5 compatible SPA fallback
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });

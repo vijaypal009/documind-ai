@@ -85,17 +85,6 @@ body {
   gap: 12px;
 }
 
-.user-pill {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--bg-tertiary);
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 13px;
-  border: 1px solid var(--border-color);
-}
-
 .btn-icon {
   background: none;
   border: 1px solid var(--border-color);
@@ -103,21 +92,6 @@ body {
   padding: 6px 10px;
   border-radius: 6px;
   cursor: pointer;
-}
-
-.btn-sm {
-  background: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-muted);
-  padding: 2px 8px;
-  font-size: 12px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.btn-sm:hover {
-  color: var(--text-main);
-  border-color: var(--text-muted);
 }
 
 /* Layout */
@@ -219,10 +193,10 @@ body {
 
 .message {
   max-width: 80%;
-  padding: 12px 16px;
+  padding: 14px 18px;
   border-radius: 8px;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .user-message {
@@ -238,17 +212,91 @@ body {
   border: 1px solid var(--border-color);
 }
 
-.sources-box {
-  margin-top: 10px;
-  padding-top: 8px;
+/* Markdown Styling */
+.markdown-body {
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--text-main);
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4 {
+  color: var(--text-main);
+  margin-top: 14px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.markdown-body h3 {
+  font-size: 16px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 4px;
+}
+
+.markdown-body h4 {
+  font-size: 14.5px;
+}
+
+.markdown-body p {
+  margin-bottom: 10px;
+}
+
+.markdown-body p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body ul, 
+.markdown-body ol {
+  margin-left: 20px;
+  margin-bottom: 10px;
+}
+
+.markdown-body li {
+  margin-bottom: 4px;
+}
+
+.markdown-body hr {
+  border: none;
   border-top: 1px solid var(--border-color);
-  font-size: 12px;
+  margin: 14px 0;
+}
+
+.markdown-body strong {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.markdown-body code {
+  background: rgba(110, 118, 129, 0.2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+}
+
+.sources-box {
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.sources-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   color: var(--text-muted);
+  margin-bottom: 6px;
 }
 
 .sources-box ul {
-  margin-left: 18px;
-  margin-top: 4px;
+  margin-left: 16px;
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 .loading-indicator {
@@ -292,86 +340,4 @@ body {
 
 .btn-primary:hover {
   background: var(--accent-hover);
-}
-
-/* Modal */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 32px;
-  width: 100%;
-  max-width: 380px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-}
-
-.modal-card h2 {
-  font-size: 20px;
-  margin-bottom: 6px;
-}
-
-.modal-subtitle {
-  font-size: 13px;
-  color: var(--text-muted);
-  margin-bottom: 20px;
-}
-
-.input-group {
-  margin-bottom: 16px;
-}
-
-.input-group label {
-  display: block;
-  font-size: 13px;
-  margin-bottom: 6px;
-  color: var(--text-muted);
-}
-
-.input-group input {
-  width: 100%;
-  background: var(--input-bg);
-  border: 1px solid var(--border-color);
-  color: var(--text-main);
-  padding: 10px;
-  border-radius: 6px;
-  font-size: 14px;
-  outline: none;
-}
-
-.input-group input:focus {
-  border-color: var(--accent);
-}
-
-.modal-card .btn-primary {
-  width: 100%;
-  margin-top: 8px;
-}
-
-.modal-footer {
-  margin-top: 16px;
-  text-align: center;
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.btn-link {
-  background: none;
-  border: none;
-  color: var(--accent);
-  cursor: pointer;
-  font-weight: 500;
-  margin-left: 4px;
 }
