@@ -79,6 +79,24 @@ body {
   color: var(--text-muted);
 }
 
+.author-credit {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: 6px;
+}
+
+.author-credit a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.author-credit a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
 .header-actions {
   display: flex;
   align-items: center;
