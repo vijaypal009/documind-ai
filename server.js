@@ -18,7 +18,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const upload = multer({ storage: multer.memoryStorage() });
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-const chatModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+const chatModel = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
 
 const globalStore = new VectorStore();
 let currentDocument = null;
